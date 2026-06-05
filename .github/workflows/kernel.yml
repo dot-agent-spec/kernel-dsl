@@ -73,14 +73,32 @@ jobs:
           targets: wasm32-wasip1
 
       - name: Install wasm-bindgen-cli
-        run: cargo install wasm-bindgen-cli
+        run: cargo install wasm-bindgen-cli --version "=0.2.122" --locked
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and publish
+      - name: Build release
         run: |
           export CC_wasm32_wasip1="zig cc -target wasm32-wasi"
           export CXX_wasm32_wasip1="zig c++ -target wasm32-wasi"
           export AR_wasm32_wasip1="zig ar"
-          npm run build:release && npm publish
+          npm run build:release
+
+      - name: Verify build artifacts
+        run: |
+          for f in index.js \
+                    scripts/discover-wasm-imports.js \
+                    scripts/patch-wasm-bindgen.js \
+                    pkg/dot_agent_kernel_dsl.js \
+                    pkg/dot_agent_kernel_dsl.d.ts \
+                    pkg/dot_agent_kernel_dsl_bg.js \
+                    pkg/dot_agent_kernel_dsl_bg.wasm \
+                    pkg/dot_agent_kernel_dsl_bg.wasm.d.ts \
+                    pkg/package.json; do
+            [ -f "$f" ] || { echo "MISSING: $f"; exit 1; }
+          done
+          echo "All artifacts present."
+
+      - name: Publish
+        run: npm publish --provenance
